@@ -132,15 +132,31 @@ public class ExecutionServiceImpl implements ExecutionService {
         retryExecution.setRequestBody(originalExecution.getRequestBody());
 
         retryExecution = executionRepository.save(retryExecution);
-        addLog(retryExecution, "RETRY", ExecutionLogLevel.INFO, "재처리가 시작되었습니다. reason=" + request.reason());
+        addLog(
+                retryExecution,
+                "RETRY",
+                ExecutionLogLevel.INFO,
+                "재처리가 시작되었습니다. reason=" + request.reason() + ", outcome=" + request.outcome()
+        );
 
-        retryExecution.setExecutionStatus(ExecutionStatus.SUCCESS);
-        retryExecution.setResponseStatusCode(200);
-        retryExecution.setResponseBody("{\"resultCode\":\"0000\",\"resultMessage\":\"재처리 성공\"}");
+        if (request.outcome() == ExecutionRetryRequest.RetryOutcome.SUCCESS) {
+            retryExecution.setExecutionStatus(ExecutionStatus.SUCCESS);
+            retryExecution.setResponseStatusCode(200);
+            retryExecution.setResponseBody("{\"resultCode\":\"0000\",\"resultMessage\":\"재처리 성공\"}");
+            retryExecution.setErrorCode(null);
+            retryExecution.setErrorMessage(null);
+            addLog(retryExecution, "RESPONSE", ExecutionLogLevel.INFO, "재처리가 정상 완료되었습니다.");
+        } else {
+            retryExecution.setExecutionStatus(ExecutionStatus.FAILED);
+            retryExecution.setResponseStatusCode(500);
+            retryExecution.setResponseBody("{\"resultCode\":\"9999\",\"resultMessage\":\"재처리 실패\"}");
+            retryExecution.setErrorCode("RETRY_500");
+            retryExecution.setErrorMessage("재처리 실패");
+            addLog(retryExecution, "ERROR", ExecutionLogLevel.ERROR, "재처리가 실패했습니다.");
+        }
         retryExecution.setEndedAt(LocalDateTime.now());
         retryExecution.setDurationMillis(calculateDuration(retryExecution));
         executionRepository.save(retryExecution);
-        addLog(retryExecution, "RESPONSE", ExecutionLogLevel.INFO, "재처리가 정상 완료되었습니다.");
 
         return ExecutionResponse.from(retryExecution);
     }
