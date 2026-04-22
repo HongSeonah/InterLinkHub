@@ -14,18 +14,31 @@ import com.hongseonah.interlinkhub.domain.execution.entity.ManagedExecution;
 import com.hongseonah.interlinkhub.domain.execution.entity.TriggerType;
 import com.hongseonah.interlinkhub.domain.execution.repository.ExecutionLogRepository;
 import com.hongseonah.interlinkhub.domain.execution.repository.ExecutionRepository;
+import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.AuthType;
+import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.InterfaceProtocolConfig;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.ManagedInterface;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.repository.InterfaceRepository;
+import com.hongseonah.interlinkhub.domain.interfaceinfo.repository.ProtocolConfigRepository;
 import com.hongseonah.interlinkhub.global.exception.BusinessException;
 import com.hongseonah.interlinkhub.global.exception.ErrorCode;
+
 import java.time.LocalDateTime;
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +48,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     private final ExecutionRepository executionRepository;
     private final ExecutionLogRepository executionLogRepository;
     private final InterfaceRepository interfaceRepository;
+    private final ProtocolConfigRepository protocolConfigRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -47,6 +61,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     @Transactional
     public ExecutionResponse execute(Long interfaceId, ExecutionCreateRequest request, TriggerType triggerType) {
         ManagedInterface managedInterface = getInterface(interfaceId);
+        InterfaceProtocolConfig protocolConfig = protocolConfigRepository.findByManagedInterfaceId(interfaceId).orElse(null);
 
         ManagedExecution execution = new ManagedExecution();
         execution.setManagedInterface(managedInterface);
@@ -60,25 +75,10 @@ public class ExecutionServiceImpl implements ExecutionService {
         execution = executionRepository.save(execution);
         addLog(execution, "REQUEST", ExecutionLogLevel.INFO, "실행 요청이 생성되었습니다.");
 
-        boolean success = shouldSucceed(request.requestBody());
-        if (success) {
-            execution.setExecutionStatus(ExecutionStatus.SUCCESS);
-            execution.setResponseStatusCode(200);
-            execution.setResponseBody("{\"resultCode\":\"0000\",\"resultMessage\":\"정상 처리\"}");
-            execution.setEndedAt(LocalDateTime.now());
-            execution.setDurationMillis(calculateDuration(execution));
-            executionRepository.save(execution);
-            addLog(execution, "RESPONSE", ExecutionLogLevel.INFO, "실행이 정상 완료되었습니다.");
+        if (protocolConfig != null && StringUtils.hasText(protocolConfig.getEndpointUrl())) {
+            executeExternal(execution, request.requestBody(), protocolConfig);
         } else {
-            execution.setExecutionStatus(ExecutionStatus.FAILED);
-            execution.setResponseStatusCode(500);
-            execution.setErrorCode("MOCK_500");
-            execution.setErrorMessage("mock execution failed");
-            execution.setResponseBody("{\"resultCode\":\"9999\",\"resultMessage\":\"실패\"}");
-            execution.setEndedAt(LocalDateTime.now());
-            execution.setDurationMillis(calculateDuration(execution));
-            executionRepository.save(execution);
-            addLog(execution, "ERROR", ExecutionLogLevel.ERROR, "실행이 실패했습니다.");
+            executeMock(execution, request.requestBody());
         }
 
         return ExecutionResponse.from(execution);
@@ -185,5 +185,80 @@ public class ExecutionServiceImpl implements ExecutionService {
             }
         }
         return true;
+    }
+
+    private void executeMock(ManagedExecution execution, Object requestBody) {
+        boolean success = shouldSucceed(requestBody);
+        if (success) {
+            execution.setExecutionStatus(ExecutionStatus.SUCCESS);
+            execution.setResponseStatusCode(200);
+            execution.setResponseBody("{\"resultCode\":\"0000\",\"resultMessage\":\"정상 처리\"}");
+            execution.setEndedAt(LocalDateTime.now());
+            execution.setDurationMillis(calculateDuration(execution));
+            executionRepository.save(execution);
+            addLog(execution, "RESPONSE", ExecutionLogLevel.INFO, "실행이 정상 완료되었습니다.");
+        } else {
+            execution.setExecutionStatus(ExecutionStatus.FAILED);
+            execution.setResponseStatusCode(500);
+            execution.setErrorCode("MOCK_500");
+            execution.setErrorMessage("mock execution failed");
+            execution.setResponseBody("{\"resultCode\":\"9999\",\"resultMessage\":\"실패\"}");
+            execution.setEndedAt(LocalDateTime.now());
+            execution.setDurationMillis(calculateDuration(execution));
+            executionRepository.save(execution);
+            addLog(execution, "ERROR", ExecutionLogLevel.ERROR, "실행이 실패했습니다.");
+        }
+    }
+
+    private void executeExternal(ManagedExecution execution, Object requestBody, InterfaceProtocolConfig protocolConfig) {
+        try {
+            RestTemplate restTemplate = buildRestTemplate(protocolConfig);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            if (protocolConfig.getAuthType() == AuthType.BEARER && StringUtils.hasText(protocolConfig.getAuthValue())) {
+                headers.setBearerAuth(protocolConfig.getAuthValue());
+            } else if (protocolConfig.getAuthType() == AuthType.API_KEY && StringUtils.hasText(protocolConfig.getAuthValue())) {
+                headers.add("X-API-Key", protocolConfig.getAuthValue());
+            }
+
+            HttpEntity<Object> entity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<String> response = restTemplate.postForEntity(protocolConfig.getEndpointUrl(), entity, String.class);
+
+            execution.setEndedAt(LocalDateTime.now());
+            execution.setDurationMillis(calculateDuration(execution));
+            execution.setResponseStatusCode(response.getStatusCode().value());
+            execution.setResponseBody(response.getBody());
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                execution.setExecutionStatus(ExecutionStatus.SUCCESS);
+                addLog(execution, "RESPONSE", ExecutionLogLevel.INFO, "외부 연동이 정상 완료되었습니다.");
+            } else {
+                execution.setExecutionStatus(ExecutionStatus.FAILED);
+                execution.setErrorCode("HTTP_" + response.getStatusCode().value());
+                execution.setErrorMessage("외부 연동 실패");
+                addLog(execution, "ERROR", ExecutionLogLevel.ERROR, "외부 연동이 실패했습니다.");
+            }
+            executionRepository.save(execution);
+        } catch (RestClientException e) {
+            execution.setExecutionStatus(ExecutionStatus.FAILED);
+            execution.setResponseStatusCode(500);
+            execution.setErrorCode("EXTERNAL_CALL_FAILED");
+            execution.setErrorMessage(e.getMessage());
+            execution.setEndedAt(LocalDateTime.now());
+            execution.setDurationMillis(calculateDuration(execution));
+            executionRepository.save(execution);
+            addLog(execution, "ERROR", ExecutionLogLevel.ERROR, "외부 연동 중 오류가 발생했습니다.");
+        }
+    }
+
+    private RestTemplate buildRestTemplate(InterfaceProtocolConfig protocolConfig) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        if (protocolConfig.getConnectTimeoutMillis() != null) {
+            requestFactory.setConnectTimeout(protocolConfig.getConnectTimeoutMillis());
+        }
+        if (protocolConfig.getReadTimeoutMillis() != null) {
+            requestFactory.setReadTimeout(protocolConfig.getReadTimeoutMillis());
+        }
+        return new RestTemplate(requestFactory);
     }
 }

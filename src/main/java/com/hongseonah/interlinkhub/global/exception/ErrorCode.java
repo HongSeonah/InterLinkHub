@@ -14,6 +14,8 @@ public enum ErrorCode {
     EXECUTION_NOT_FOUND(HttpStatus.NOT_FOUND, "EXECUTION_NOT_FOUND", "실행 이력을 찾을 수 없습니다."),
     EXECUTION_NOT_RETRYABLE(HttpStatus.BAD_REQUEST, "EXECUTION_NOT_RETRYABLE", "재처리할 수 없는 실행 상태입니다."),
     SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "SCHEDULE_NOT_FOUND", "스케줄 정보를 찾을 수 없습니다."),
+    DUPLICATE_PROTOCOL_CONFIG(HttpStatus.CONFLICT, "DUPLICATE_PROTOCOL_CONFIG", "이미 프로토콜 설정이 등록되어 있습니다."),
+    PROTOCOL_CONFIG_NOT_FOUND(HttpStatus.NOT_FOUND, "PROTOCOL_CONFIG_NOT_FOUND", "프로토콜 설정을 찾을 수 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus status;
