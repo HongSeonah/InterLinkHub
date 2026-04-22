@@ -3,6 +3,7 @@ package com.hongseonah.interlinkhub.domain.interfaceinfo.controller;
 import com.hongseonah.interlinkhub.common.response.ApiResponse;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.dto.request.ProtocolConfigCreateRequest;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.dto.request.ProtocolConfigUpdateRequest;
+import com.hongseonah.interlinkhub.domain.interfaceinfo.dto.response.ProtocolConnectionTestResponse;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.dto.response.ProtocolConfigResponse;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.service.ProtocolConfigService;
 import jakarta.validation.Valid;
@@ -41,5 +42,10 @@ public class ProtocolConfigController {
             @Valid @RequestBody ProtocolConfigUpdateRequest request
     ) {
         return ApiResponse.success("프로토콜 설정이 수정되었습니다.", protocolConfigService.update(interfaceId, request));
+    }
+
+    @PostMapping("/test")
+    public ApiResponse<ProtocolConnectionTestResponse> test(@Valid @RequestBody ProtocolConfigCreateRequest request) {
+        return ApiResponse.success("연결이 확인되었습니다.", protocolConfigService.test(request));
     }
 }

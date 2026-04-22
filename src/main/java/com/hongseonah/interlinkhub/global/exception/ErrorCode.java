@@ -16,6 +16,7 @@ public enum ErrorCode {
     SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "SCHEDULE_NOT_FOUND", "스케줄 정보를 찾을 수 없습니다."),
     DUPLICATE_PROTOCOL_CONFIG(HttpStatus.CONFLICT, "DUPLICATE_PROTOCOL_CONFIG", "이미 프로토콜 설정이 등록되어 있습니다."),
     PROTOCOL_CONFIG_NOT_FOUND(HttpStatus.NOT_FOUND, "PROTOCOL_CONFIG_NOT_FOUND", "프로토콜 설정을 찾을 수 없습니다."),
+    PROTOCOL_ENDPOINT_INVALID(HttpStatus.BAD_REQUEST, "PROTOCOL_ENDPOINT_INVALID", "연결 주소가 목 서버와 맞지 않습니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "아이디 또는 비밀번호가 올바르지 않습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.");
 

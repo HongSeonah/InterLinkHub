@@ -17,4 +17,6 @@ public interface InterfaceService {
     InterfaceResponse update(Long id, InterfaceUpdateRequest request);
 
     InterfaceResponse updateStatus(Long id, InterfaceStatusUpdateRequest request);
+
+    void delete(Long id);
 }

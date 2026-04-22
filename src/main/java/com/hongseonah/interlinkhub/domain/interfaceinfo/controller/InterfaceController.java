@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -58,5 +59,11 @@ public class InterfaceController {
             @Valid @RequestBody InterfaceStatusUpdateRequest request
     ) {
         return ApiResponse.success("인터페이스 상태가 수정되었습니다.", interfaceService.updateStatus(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        interfaceService.delete(id);
+        return ApiResponse.<Void>success("인터페이스가 삭제되었습니다.", null);
     }
 }

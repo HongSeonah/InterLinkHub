@@ -5,12 +5,14 @@ import com.hongseonah.interlinkhub.domain.interfaceinfo.dto.request.InterfaceCre
 import com.hongseonah.interlinkhub.domain.interfaceinfo.dto.request.InterfaceStatusUpdateRequest;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.dto.request.InterfaceUpdateRequest;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.dto.response.InterfaceResponse;
+import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.InterfaceStatus;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.ManagedInterface;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.repository.InterfaceRepository;
 import com.hongseonah.interlinkhub.domain.system.entity.ManagedSystem;
 import com.hongseonah.interlinkhub.domain.system.repository.SystemRepository;
 import com.hongseonah.interlinkhub.global.exception.BusinessException;
 import com.hongseonah.interlinkhub.global.exception.ErrorCode;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -54,8 +56,8 @@ public class InterfaceServiceImpl implements InterfaceService {
     public PageResponse<InterfaceResponse> findAll(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<ManagedInterface> result = (keyword == null || keyword.isBlank())
-                ? interfaceRepository.findAll(pageable)
-                : interfaceRepository.findByInterfaceNameContainingIgnoreCaseOrInterfaceCodeContainingIgnoreCase(
+                ? interfaceRepository.findByDeletedAtIsNull(pageable)
+                : interfaceRepository.findByDeletedAtIsNullAndInterfaceNameContainingIgnoreCaseOrDeletedAtIsNullAndInterfaceCodeContainingIgnoreCase(
                 keyword,
                 keyword,
                 pageable
@@ -105,8 +107,17 @@ public class InterfaceServiceImpl implements InterfaceService {
         return InterfaceResponse.from(interfaceRepository.save(managedInterface));
     }
 
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        ManagedInterface managedInterface = getInterface(id);
+        managedInterface.setDeletedAt(LocalDateTime.now());
+        managedInterface.setStatus(InterfaceStatus.INACTIVE);
+        interfaceRepository.save(managedInterface);
+    }
+
     private ManagedInterface getInterface(Long id) {
-        return interfaceRepository.findById(id)
+        return interfaceRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INTERFACE_NOT_FOUND));
     }
 

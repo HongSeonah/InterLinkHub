@@ -9,9 +9,15 @@ public interface InterfaceRepository extends JpaRepository<ManagedInterface, Lon
 
     boolean existsByInterfaceCode(String interfaceCode);
 
-    Page<ManagedInterface> findByInterfaceNameContainingIgnoreCaseOrInterfaceCodeContainingIgnoreCase(
+    Page<ManagedInterface> findByDeletedAtIsNullAndInterfaceNameContainingIgnoreCaseOrDeletedAtIsNullAndInterfaceCodeContainingIgnoreCase(
             String interfaceName,
             String interfaceCode,
             Pageable pageable
     );
+
+    Page<ManagedInterface> findByDeletedAtIsNull(Pageable pageable);
+
+    boolean existsByIdAndDeletedAtIsNull(Long id);
+
+    java.util.Optional<ManagedInterface> findByIdAndDeletedAtIsNull(Long id);
 }
