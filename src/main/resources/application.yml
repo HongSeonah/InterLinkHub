@@ -3,6 +3,10 @@ spring:
     name: interlinkhub
   config:
     import: optional:file:.env[.properties]
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      expiration-minutes: 240
   datasource:
     url: jdbc:mysql://localhost:3306/interlinkhub?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
