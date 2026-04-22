@@ -23,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -152,6 +154,7 @@ public class ProtocolConfigServiceImpl implements ProtocolConfigService {
                     ? new HttpEntity<>(headers)
                     : new HttpEntity<>(java.util.Map.of("ping", "test"), headers);
 
+            log.info("Testing endpoint: method={}, url={}", method, endpointUrl.trim());
             return restTemplate.exchange(
                     URI.create(endpointUrl.trim()),
                     method,
@@ -161,8 +164,10 @@ public class ProtocolConfigServiceImpl implements ProtocolConfigService {
         } catch (BusinessException e) {
             throw e;
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid endpoint test request: {}", e.getMessage());
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         } catch (RestClientException e) {
+            log.warn("Endpoint test failed: {}", e.getMessage());
             throw new BusinessException(ErrorCode.PROTOCOL_ENDPOINT_INVALID);
         }
     }
