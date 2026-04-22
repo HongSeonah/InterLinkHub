@@ -13,6 +13,7 @@ public enum ErrorCode {
     SAME_SYSTEM_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "SAME_SYSTEM_NOT_ALLOWED", "송신 시스템과 수신 시스템은 같을 수 없습니다."),
     EXECUTION_NOT_FOUND(HttpStatus.NOT_FOUND, "EXECUTION_NOT_FOUND", "실행 이력을 찾을 수 없습니다."),
     EXECUTION_NOT_RETRYABLE(HttpStatus.BAD_REQUEST, "EXECUTION_NOT_RETRYABLE", "재처리할 수 없는 실행 상태입니다."),
+    SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "SCHEDULE_NOT_FOUND", "스케줄 정보를 찾을 수 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus status;

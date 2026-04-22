@@ -40,12 +40,18 @@ public class ExecutionServiceImpl implements ExecutionService {
     @Override
     @Transactional
     public ExecutionResponse execute(Long interfaceId, ExecutionCreateRequest request) {
+        return execute(interfaceId, request, TriggerType.MANUAL);
+    }
+
+    @Override
+    @Transactional
+    public ExecutionResponse execute(Long interfaceId, ExecutionCreateRequest request, TriggerType triggerType) {
         ManagedInterface managedInterface = getInterface(interfaceId);
 
         ManagedExecution execution = new ManagedExecution();
         execution.setManagedInterface(managedInterface);
         execution.setTraceId(request.traceId());
-        execution.setTriggerType(TriggerType.MANUAL);
+        execution.setTriggerType(triggerType);
         execution.setExecutionStatus(ExecutionStatus.RUNNING);
         execution.setRequestedBy(request.requestedBy());
         execution.setStartedAt(LocalDateTime.now());
