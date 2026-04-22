@@ -50,7 +50,6 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
-                                "/mock/**",
                                 "/actuator/health",
                                 "/error"
                         ).permitAll()

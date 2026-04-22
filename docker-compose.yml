@@ -43,5 +43,14 @@ services:
     volumes:
       - ./logs:/app/logs
 
+  mock-partner-api:
+    build:
+      context: ./mock-partner-api
+      dockerfile: Dockerfile
+    container_name: interlinkhub-mock-partner-api
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+
 volumes:
   mysql_data:
