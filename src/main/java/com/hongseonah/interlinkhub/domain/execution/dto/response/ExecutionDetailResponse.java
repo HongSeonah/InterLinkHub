@@ -25,9 +25,10 @@ public record ExecutionDetailResponse(
         LocalDateTime startedAt,
         LocalDateTime endedAt,
         Long retryOfExecutionId,
+        boolean hasRetryExecution,
         List<ExecutionLogResponse> logs
 ) {
-    public static ExecutionDetailResponse from(ManagedExecution execution, List<ExecutionLog> logs) {
+    public static ExecutionDetailResponse from(ManagedExecution execution, List<ExecutionLog> logs, boolean hasRetryExecution) {
         return new ExecutionDetailResponse(
                 execution.getId(),
                 execution.getManagedInterface().getId(),
@@ -46,6 +47,7 @@ public record ExecutionDetailResponse(
                 execution.getStartedAt(),
                 execution.getEndedAt(),
                 execution.getRetryOfExecutionId(),
+                hasRetryExecution,
                 logs.stream().map(ExecutionLogResponse::from).toList()
         );
     }

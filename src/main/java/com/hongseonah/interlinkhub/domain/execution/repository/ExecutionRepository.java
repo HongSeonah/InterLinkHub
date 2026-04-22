@@ -11,4 +11,6 @@ public interface ExecutionRepository extends JpaRepository<ManagedExecution, Lon
     Page<ManagedExecution> findByManagedInterfaceId(Long interfaceId, Pageable pageable);
 
     List<ManagedExecution> findTop20ByOrderByCreatedAtDesc();
+
+    boolean existsByRetryOfExecutionId(Long retryOfExecutionId);
 }

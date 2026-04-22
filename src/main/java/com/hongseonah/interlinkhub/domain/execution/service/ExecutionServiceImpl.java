@@ -14,21 +14,22 @@ import com.hongseonah.interlinkhub.domain.execution.entity.ManagedExecution;
 import com.hongseonah.interlinkhub.domain.execution.entity.TriggerType;
 import com.hongseonah.interlinkhub.domain.execution.repository.ExecutionLogRepository;
 import com.hongseonah.interlinkhub.domain.execution.repository.ExecutionRepository;
-import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.AuthType;
-import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.InterfaceProtocolConfig;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.ManagedInterface;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.repository.InterfaceRepository;
 import com.hongseonah.interlinkhub.domain.interfaceinfo.repository.ProtocolConfigRepository;
+import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.InterfaceProtocolConfig;
+import com.hongseonah.interlinkhub.domain.interfaceinfo.entity.AuthType;
 import com.hongseonah.interlinkhub.global.exception.BusinessException;
 import com.hongseonah.interlinkhub.global.exception.ErrorCode;
-
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -104,7 +105,8 @@ public class ExecutionServiceImpl implements ExecutionService {
     public ExecutionDetailResponse findById(Long executionId) {
         ManagedExecution execution = getExecution(executionId);
         List<ExecutionLog> logs = executionLogRepository.findByExecutionIdOrderByCreatedAtAsc(executionId);
-        return ExecutionDetailResponse.from(execution, logs);
+        boolean hasRetryExecution = executionRepository.existsByRetryOfExecutionId(execution.getId());
+        return ExecutionDetailResponse.from(execution, logs, hasRetryExecution);
     }
 
     @Override
@@ -113,6 +115,9 @@ public class ExecutionServiceImpl implements ExecutionService {
         ManagedExecution originalExecution = getExecution(executionId);
         if (originalExecution.getExecutionStatus() != ExecutionStatus.FAILED
                 && originalExecution.getExecutionStatus() != ExecutionStatus.TIMEOUT) {
+            throw new BusinessException(ErrorCode.EXECUTION_NOT_RETRYABLE);
+        }
+        if (executionRepository.existsByRetryOfExecutionId(originalExecution.getId())) {
             throw new BusinessException(ErrorCode.EXECUTION_NOT_RETRYABLE);
         }
 
