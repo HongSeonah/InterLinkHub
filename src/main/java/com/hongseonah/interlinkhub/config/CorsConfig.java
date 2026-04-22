@@ -17,7 +17,8 @@ public class CorsConfig {
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
                 "http://13.209.75.91:5173",
-                "http://13.209.75.91:8080"
+                "http://13.209.75.91:8080",
+                "https://*.vercel.app"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
